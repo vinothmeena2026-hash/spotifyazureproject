@@ -1,0 +1,9 @@
+{
+	"name": "meenaazuredatafactory",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "15afd195-afbc-4cf9-8649-04e81c071208",
+		"tenantId": "7e335ab4-7002-4cd7-8495-ecf3103cdbbf"
+	}
+}
