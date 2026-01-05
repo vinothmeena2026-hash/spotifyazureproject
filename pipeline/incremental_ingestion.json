@@ -65,7 +65,15 @@
 				"outputs": [
 					{
 						"referenceName": "parquet_spotify_dynamic",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"p_container": "bronze",
+							"p_folder": "users",
+							"p_file": {
+								"value": "@concat(pipeline().parameters.table, '_', variables('current'))",
+								"type": "Expression"
+							}
+						}
 					}
 				]
 			},
@@ -116,7 +124,10 @@
 				"userProperties": [],
 				"typeProperties": {
 					"variableName": "current",
-					"value": ""
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
 				}
 			}
 		],
