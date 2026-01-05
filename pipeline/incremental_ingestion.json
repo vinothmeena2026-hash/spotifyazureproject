@@ -169,6 +169,10 @@
 										"p_folder": {
 											"value": "@pipeline().parameters.table",
 											"type": "Expression"
+										},
+										"p_file": {
+											"value": "@concat(pipeline().parameters.table, '_', variables('current'))",
+											"type": "Expression"
 										}
 									}
 								},
