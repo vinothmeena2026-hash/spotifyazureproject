@@ -1,0 +1,40 @@
+{
+	"name": "Js_spotify_dynamic",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_spotify_datalake",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"s_container": {
+				"type": "string"
+			},
+			"s_folder": {
+				"type": "string"
+			},
+			"s_file": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().s_file",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().s_folder",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().s_container",
+					"type": "Expression"
+				}
+			}
+		},
+		"schema": {}
+	}
+}
