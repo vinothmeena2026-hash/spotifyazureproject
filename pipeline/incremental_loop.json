@@ -8,6 +8,11 @@
 				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.loop_input",
+						"type": "Expression"
+					},
+					"isSequential": true,
 					"activities": [
 						{
 							"name": "AzureSQLToLake",
@@ -38,7 +43,7 @@
 								"source": {
 									"type": "AzureSqlSource",
 									"sqlReaderQuery": {
-										"value": "SELECT *\nFROM @{pipeline().parameters.schema}.@{pipeline().parameters.table}\nWHERE @{pipeline().parameters.cdc_col} >\n'@{if(\n    empty(pipeline().parameters.from_date),\n    activity('last_cdc').output.value[0].cdc,\n    pipeline().parameters.from_date\n)}'\n",
+										"value": "SELECT *\nFROM @{item().schema}.@{item().table}\nWHERE @{item().cdc_col} >\n'@{if(\n    empty(item().from_date),\n    activity('last_cdc').output.value[0].cdc,\n    item().from_date\n)}'\n",
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
@@ -76,11 +81,11 @@
 									"parameters": {
 										"p_container": "bronze",
 										"p_folder": {
-											"value": "@pipeline().parameters.table",
+											"value": "@item().table",
 											"type": "Expression"
 										},
 										"p_file": {
-											"value": "@concat(pipeline().parameters.table, '_', variables('current'))",
+											"value": "@concat(item().table, '_', variables('current'))",
 											"type": "Expression"
 										}
 									}
@@ -117,7 +122,7 @@
 									"parameters": {
 										"s_container": "bronze",
 										"s_folder": {
-											"value": "@{pipeline().parameters.table}_cdc",
+											"value": "@{item().table}_cdc",
 											"type": "Expression"
 										},
 										"s_file": "cdc.json"
@@ -180,11 +185,11 @@
 												"parameters": {
 													"p_container": "bronze",
 													"p_folder": {
-														"value": "@pipeline().parameters.table",
+														"value": "@item().table",
 														"type": "Expression"
 													},
 													"p_file": {
-														"value": "@concat(pipeline().parameters.table, '_', variables('current'))",
+														"value": "@concat(item().table, '_', variables('current'))",
 														"type": "Expression"
 													}
 												}
@@ -256,7 +261,10 @@
 												"type": "DatasetReference",
 												"parameters": {
 													"s_container": "bronze",
-													"s_folder": "cdc",
+													"s_folder": {
+														"value": "@{item().table}_cdc",
+														"type": "Expression"
+													},
 													"s_file": "empty.json"
 												}
 											}
@@ -268,7 +276,7 @@
 												"parameters": {
 													"s_container": "bronze",
 													"s_folder": {
-														"value": "@{pipeline().parameters.table}_cdc",
+														"value": "@{item().table}_cdc",
 														"type": "Expression"
 													},
 													"s_file": "cdc.json"
@@ -297,7 +305,7 @@
 												{
 													"type": "Query",
 													"text": {
-														"value": "SELECT Max(@{pipeline().parameters.cdc_col}) as cdc FROM @{pipeline().parameters.schema}.@{pipeline().parameters.table}",
+														"value": "SELECT Max(@{item().cdc_col}) as cdc FROM @{item().schema}.@{item().table}",
 														"type": "Expression"
 													}
 												}
@@ -310,20 +318,72 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "Alerts",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Failed",
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://prod-24.northcentralus.logic.azure.com:443/workflows/945750d64f054778b007fe4403399037/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=HmjJchy-Po12SDzbt1mbsoFij7gxq84mX2NUmmFK0TA",
+					"body": {
+						"value": "{\n    \"pipeline_name\" : \"@{pipeline().Pipeline}\",\n    \"pipeline_runId\" : \"@{pipeline().RunId}\"\n}",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
-			"schema": {
-				"type": "string"
-			},
-			"table": {
-				"type": "string"
-			},
-			"cdc_col": {
-				"type": "string"
-			},
-			"from_date": {
-				"type": "string"
+			"loop_input": {
+				"type": "array",
+				"defaultValue": [
+					{
+						"schema": "dbo",
+						"table": "DimUser",
+						"cdc_col": "updated_at",
+						"from_date": ""
+					},
+					{
+						"schema": "dbo",
+						"table": "DimTrack",
+						"cdc_col": "updated_at",
+						"from_date": ""
+					},
+					{
+						"schema": "dbo",
+						"table": "DimDate",
+						"cdc_col": "date",
+						"from_date": ""
+					},
+					{
+						"schema": "dbo",
+						"table": "DimArtist",
+						"cdc_col": "updated_at",
+						"from_date": ""
+					},
+					{
+						"schema": "dbo",
+						"table": "FactStream",
+						"cdc_col": "stream_timestamp",
+						"from_date": ""
+					}
+				]
 			}
 		},
 		"variables": {
